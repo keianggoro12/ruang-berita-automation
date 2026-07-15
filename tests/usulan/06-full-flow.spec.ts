@@ -49,8 +49,8 @@ test.describe('Usulan - Full Flow', () => {
       const createCount = await usulanPage.getRowCount();
       console.log('Rows before edit:', createCount);
 
-      // Use newest row (index 0) - list is typically sorted newest first
-      const editRowIdx = 0;
+      // Pick a random row for edit
+      const editRowIdx = Math.floor(Math.random() * createCount);
 
       // Get status BEFORE opening dropdown (on list page)
       // Wait for status column to be populated
@@ -109,8 +109,8 @@ test.describe('Usulan - Full Flow', () => {
       const editCount = await usulanPage.getRowCount();
       console.log('Rows before delete:', editCount);
 
-      // Delete the same row we edited (now at index 0)
-      const deleteRowIdx = 0;
+      // Pick a random row for delete
+      const deleteRowIdx = Math.floor(Math.random() * editCount);
       console.log('Deleting row:', deleteRowIdx);
 
       await usulanPage.openRowDropdown(deleteRowIdx);

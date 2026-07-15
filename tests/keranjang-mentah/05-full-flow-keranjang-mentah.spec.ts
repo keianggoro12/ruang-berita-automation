@@ -36,7 +36,7 @@ test.describe('Keranjang Mentah - Full Flow', () => {
 
       // ── Step 2: Edit ──
       console.log('Editing...');
-      const editRowIdx = 0;
+      const editRowIdx = Math.floor(Math.random() * createCount);
       await keranjangMentahPage.openRowDropdown(editRowIdx);
       await keranjangMentahPage.clickEditFromDropdown();
 
@@ -59,7 +59,7 @@ test.describe('Keranjang Mentah - Full Flow', () => {
 
       // ── Step 3: Delete ──
       console.log('Deleting...');
-      const deleteRowIdx = 0;
+      const deleteRowIdx = Math.floor(Math.random() * editCount);
       await keranjangMentahPage.openRowDropdown(deleteRowIdx);
       await keranjangMentahPage.clickDeleteFromDropdown();
       await keranjangMentahPage.confirmDeleteModal();
