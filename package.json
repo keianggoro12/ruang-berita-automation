@@ -1,0 +1,17 @@
+{
+  "name": "ruang-berita-automation",
+  "version": "1.0.0",
+  "description": "Frontend automation testing for Ruang Berita Staging",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:usulan": "npx playwright test tests/usulan/",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "dotenv": "^16.5.0",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,8 @@
+export const TIMEOUT = {
+  EXTRA_LONG: 180000,
+  LONG: 90000,
+  MEDIUM: 30000,
+  SHORT: 10000,
+  TINY: 2000,
+  TOAST_CHECK: 1000,
+} as const;
