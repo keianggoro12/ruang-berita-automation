@@ -10,16 +10,13 @@ export const articlesLocators = {
     heading: 'h2:has-text("ARTIKEL")',
     searchInput: 'input[placeholder*="Cari judul artikel"]',
     searchButton: 'button:has-text("Cari")',
-    filterButton: 'button:has-text("Filter")',
-    resetFilterButton: 'button:has-text("Reset")',
-    applyFilterButton: 'button:has-text("Terapkan Filter")',
     kebabButton: 'td:last-child button',
+    paginationNext: 'button:has-text("Next"), button[aria-label*="next" i]',
+    paginationPrev: 'button:has-text("Prev"), button[aria-label*="prev" i]',
     dropdownMenu: {
       editArticle: 'a:has-text("Edit Artikel"), span:has-text("Edit Artikel")',
       deleteArticle: 'button:has-text("Hapus Artikel"), span:has-text("Hapus Artikel")',
     },
-    paginationNext: 'button:has-text("Next"), button[aria-label*="next" i]',
-    paginationPrev: 'button:has-text("Prev"), button[aria-label*="prev" i]',
   },
 
   create: {
@@ -43,20 +40,21 @@ export const articlesLocators = {
     // ── Rich Text Editors ──
     editorContainer: '.slate-editor',
 
-    // ── Right Panel: Tayang Tab ──
+    // ── Tab Navigation ──
     tayangTab: 'button:has-text("Tayang")',
     seoTab: 'button:has-text("SEO")',
     timTab: 'button:has-text("Tim")',
 
     // ── Tayang Settings ──
-    domainSelect: 'select:near(:text("Domain*"))',
     rubrikInput: 'input[placeholder="Pilih Rubrik..."]',
     subRubrikInput: 'input[placeholder="Pilih Sub Rubrik..."]',
-    waktuTayangButton: 'button:has-text("Pilih Waktu Tayang")',
+    waktuTayangButton: 'button:has-text("Pilih Waktu Tayang"), button:has-text("WIB")',
+    waktuTayangPicker: 'div.absolute.top-full',
+    waktuTayangMonthSelect: 'select[aria-label="Month"]',
+    waktuTayangDayGrid: 'div.grid button:not([disabled]):not([class*="gray-300"])',
     waktuTayangConfirm: 'button:has-text("Confirm")',
-    beritaUtamaCheckbox: 'input[type="checkbox"]:near(:text("Jadikan berita utama"))',
-    aksesArtikelSelect: 'select:near(:text("Akses Artikel*"))',
-    tipeArtikelSelect: 'select:near(:text("Tipe Artikel*"))',
+    aksesArtikelSelect: 'label:has-text("Akses Artikel") ~ div select',
+    tipeArtikelSelect: 'label:has-text("Tipe Artikel") ~ div select',
     kategoriInput: 'input[placeholder="Pilih Kategori"]',
     userModelInput: 'input[placeholder="Pilih User Need Model"]',
 
@@ -74,21 +72,18 @@ export const articlesLocators = {
     displayAuthorHidden: 'input[name="display_author"][value="hidden"]',
 
     // ── Buttons ──
-    pengaturanButton: 'button:has-text("Pengaturan")',
     simpanButton: 'button:has-text("Simpan"):not(:has-text("Aksi"))',
-    aksiLainnyaButton: 'button:has-text("Aksi Lainnya")',
-    tambahArtikelButton: 'button:has-text("Tambah Artikel")',
-    previewButton: 'button:has-text("Preview")',
+    submitButton: 'button:has-text("Simpan"):not(:has-text("Aksi"))',
   },
 
   fileModal: {
-    container: '.fixed.inset-0.z-\\[999\\]',
+    container: '.fixed.inset-0.z-\\[999\\], .fixed.inset-0.z-\\[60\\]',
     heading: 'h3:has-text("Pilih Foto")',
     tabTeco: 'button:has-text("Foto Master Teco")',
     tabTM: 'button:has-text("Foto Master TM")',
-    imageCards: '.grid.grid-cols-3 > div[class*="cursor-pointer"]',
+    imageCards: '[class*="cursor-pointer"]:has(img)',
     selectButton: 'button:has-text("Pilih Foto")',
-    cancelButton: 'button:has-text("Batal")',
+    cancelButton: 'button:has-text("Batal"), button:has-text("Tutup"), button:has-text("Close")',
   },
 
   confirmModal: {
@@ -105,9 +100,8 @@ export const articlesLocators = {
     success: '[class*="success"], :has-text("berhasil"), :has-text("success")',
   },
 
-  // ── Autocomplete Dropdown ──
   autocomplete: {
-    dropdown: '.absolute.z-50:has(button[type="button"])',
-    options: '.absolute.z-50 button[type="button"]',
+    dropdown: '.absolute.z-50:visible',
+    options: '.absolute.z-50:visible button[type="button"]',
   },
 };
