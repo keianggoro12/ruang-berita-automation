@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { login } from '../../helpers/auth.helper';
 import { roles } from '../../fixtures/roles';
-import { DraftPage } from '../../pages/draft.page';
+import { KeranjangMentahPage } from '../../pages/keranjang-mentah.page';
 import { randomHeadline, randomParagraph } from '../../utils/data-generator';
 import { TIMEOUT } from '../../utils/timeout';
 
@@ -20,55 +20,55 @@ test.describe('Keranjang Mentah - Create', () => {
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const draftPage = new DraftPage(page);
-      await draftPage.navigateToDrafts();
-      await draftPage.clickCreateButton();
+      const keranjangMentahPage = new KeranjangMentahPage(page);
+      await keranjangMentahPage.navigateToKeranjangMentah();
+      await keranjangMentahPage.clickCreateButton();
 
       // ── Fill Rubrik ──
       console.log('Selecting rubrik...');
-      await draftPage.selectRandomRubrik();
+      await keranjangMentahPage.selectRandomRubrik();
 
       // ── Fill Judul ──
       const judul = randomHeadline();
       console.log(`Filling judul: ${judul}`);
-      await draftPage.fillJudul(judul);
+      await keranjangMentahPage.fillJudul(judul);
 
       // ── Fill Deskripsi ──
       const deskripsi = randomParagraph(2);
       console.log(`Filling deskripsi: ${deskripsi.substring(0, 50)}...`);
-      await draftPage.fillDeskripsi(deskripsi);
+      await keranjangMentahPage.fillDeskripsi(deskripsi);
 
       // ── Fill Isi ──
       const isi = randomParagraph(5);
       console.log(`Filling isi: ${isi.substring(0, 50)}...`);
-      await draftPage.fillIsi(isi);
+      await keranjangMentahPage.fillIsi(isi);
 
       // ── Select Article Type ──
-      const articleType = await draftPage.selectRandomArticleType();
+      const articleType = await keranjangMentahPage.selectRandomArticleType();
 
       // ── Select File (random TECO/TM) ──
       console.log('Selecting file...');
-      await draftPage.selectRandomFile();
+      await keranjangMentahPage.selectRandomFile();
 
       // ── Select Usulan (50/50) ──
-      const useUsulan = await draftPage.selectRandomUsulan();
+      const useUsulan = await keranjangMentahPage.selectRandomUsulan();
 
       // ── Fill Narasumber if usulan selected ──
       if (useUsulan) {
         console.log('Filling narasumber...');
-        await draftPage.fillRandomNarasumber();
+        await keranjangMentahPage.fillRandomNarasumber();
       }
 
       // ── Submit ──
       console.log('Submitting...');
-      await draftPage.clickSubmit();
-      await draftPage.confirmModal();
+      await keranjangMentahPage.clickSubmit();
+      await keranjangMentahPage.confirmModal();
 
       // ── Verify Success ──
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(3000);
-      await draftPage.navigateToDrafts();
-      const rowCount = await draftPage.getRowCount();
+      await keranjangMentahPage.navigateToKeranjangMentah();
+      expect(await keranjangMentahPage.isListVisible()).toBeTruthy();
+      const rowCount = await keranjangMentahPage.getRowCount();
       expect(rowCount).toBeGreaterThan(0);
       console.log('Create SUCCESS, rows:', rowCount);
     });

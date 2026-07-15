@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { login } from '../../helpers/auth.helper';
 import { roles } from '../../fixtures/roles';
-import { DraftPage } from '../../pages/draft.page';
+import { KeranjangMentahPage } from '../../pages/keranjang-mentah.page';
 import { TIMEOUT } from '../../utils/timeout';
 
 const RUN_COUNT = parseInt(process.env.RUN_COUNT || '1', 10);
@@ -13,32 +13,32 @@ function pickRandom<T>(arr: T[]): T {
 
 test.describe('Keranjang Mentah - List Verification', () => {
   for (let i = 0; i < RUN_COUNT; i++) {
-    test(`Run ${i + 1}: random role can see draft list`, async ({ page }) => {
+    test(`Run ${i + 1}: random role can see keranjang mentah list`, async ({ page }) => {
       test.setTimeout(TIMEOUT.LONG);
       const role = pickRandom(rolesWithAccess);
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const draftPage = new DraftPage(page);
-      await draftPage.navigateToDrafts();
-      expect(await draftPage.isListVisible()).toBeTruthy();
-      const rowCount = await draftPage.getRowCount();
+      const keranjangMentahPage = new KeranjangMentahPage(page);
+      await keranjangMentahPage.navigateToKeranjangMentah();
+      expect(await keranjangMentahPage.isListVisible()).toBeTruthy();
+      const rowCount = await keranjangMentahPage.getRowCount();
       console.log('Row count:', rowCount);
     });
 
-    test(`Run ${i + 1}: search drafts returns results`, async ({ page }) => {
+    test(`Run ${i + 1}: search keranjang mentah returns results`, async ({ page }) => {
       test.setTimeout(TIMEOUT.LONG);
       const role = pickRandom(rolesWithAccess);
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const draftPage = new DraftPage(page);
-      await draftPage.navigateToDrafts();
+      const keranjangMentahPage = new KeranjangMentahPage(page);
+      await keranjangMentahPage.navigateToKeranjangMentah();
 
-      await draftPage.searchDrafts('tes');
-      const rowCount = await draftPage.getRowCount();
+      await keranjangMentahPage.searchKeranjangMentah('tes');
+      const rowCount = await keranjangMentahPage.getRowCount();
       console.log('Search results:', rowCount);
-      expect(await draftPage.isListVisible()).toBeTruthy();
+      expect(await keranjangMentahPage.isListVisible()).toBeTruthy();
     });
 
     test(`Run ${i + 1}: each row has detail link`, async ({ page }) => {
@@ -47,18 +47,18 @@ test.describe('Keranjang Mentah - List Verification', () => {
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const draftPage = new DraftPage(page);
-      await draftPage.navigateToDrafts();
+      const keranjangMentahPage = new KeranjangMentahPage(page);
+      await keranjangMentahPage.navigateToKeranjangMentah();
 
-      const rowCount = await draftPage.getRowCount();
+      const rowCount = await keranjangMentahPage.getRowCount();
       if (rowCount === 0) {
-        console.log('No drafts found, skipping');
+        console.log('No keranjang mentah found, skipping');
         test.skip();
         return;
       }
 
       // Verify first row has a detail link
-      const detailUrl = await draftPage.getFirstRowDetailUrl();
+      const detailUrl = await keranjangMentahPage.getFirstRowDetailUrl();
       console.log('Detail URL:', detailUrl);
       expect(detailUrl).toContain('/drafts/');
     });

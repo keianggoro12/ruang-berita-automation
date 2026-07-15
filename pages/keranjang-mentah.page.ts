@@ -1,12 +1,12 @@
 import { expect, Page } from '@playwright/test';
-import { draftLocators as loc } from '../locators/draft.locator';
+import { keranjangMentahLocators as loc } from '../locators/keranjang-mentah.locator';
 import { TIMEOUT } from '../utils/timeout';
 import { randomHeadline, randomParagraph } from '../utils/data-generator';
 
-export class DraftPage {
+export class KeranjangMentahPage {
   constructor(private page: Page) {}
 
-  async navigateToDrafts(): Promise<void> {
+  async navigateToKeranjangMentah(): Promise<void> {
     await this.page.goto('/drafts');
     await this.page.waitForLoadState('networkidle');
   }
@@ -40,23 +40,23 @@ export class DraftPage {
 
   async openRowDropdown(rowIndex: number): Promise<void> {
     const row = this.page.locator(loc.list.rows).nth(rowIndex);
-    const kebabBtn = row.locator('button').first();
-    await kebabBtn.click();
-    await expect(this.page.locator(loc.list.dropdownMenu.editDraft).first()).toBeVisible({ timeout: TIMEOUT.SHORT });
+    await row.locator(loc.list.kebabButton).last().click();
+    await expect(this.page.locator(loc.list.dropdownMenu.editKeranjangMentah).first()).toBeVisible({ timeout: TIMEOUT.SHORT });
   }
 
   async clickEditFromDropdown(): Promise<void> {
-    await this.page.locator(loc.list.dropdownMenu.editDraft).first().click();
+    await this.page.locator(loc.list.dropdownMenu.editKeranjangMentah).first().click();
     await this.page.waitForLoadState('networkidle');
     await expect(this.page.locator(loc.create.heading)).toBeVisible({ timeout: TIMEOUT.MEDIUM });
   }
 
   async clickDeleteFromDropdown(): Promise<void> {
-    await this.page.locator(loc.list.dropdownMenu.deleteDraft).first().click();
+    await this.page.locator(loc.list.dropdownMenu.deleteKeranjangMentah).first().click();
+    await expect(this.page.locator(loc.deleteModal.confirmButton).first()).toBeVisible({ timeout: TIMEOUT.MEDIUM });
   }
 
   async clickUseFromDropdown(): Promise<void> {
-    await this.page.locator(loc.list.dropdownMenu.useDraft).first().click();
+    await this.page.locator(loc.list.dropdownMenu.useKeranjangMentah).first().click();
   }
 
   async getFirstRowDetailUrl(): Promise<string> {
@@ -65,10 +65,10 @@ export class DraftPage {
 
   // ── Search ──
 
-  async searchDrafts(query: string): Promise<void> {
+  async searchKeranjangMentah(query: string): Promise<void> {
     const input = this.page.locator(loc.list.searchInput).first();
     await input.fill(query);
-    await this.page.locator(loc.list.searchButton).first().click();
+    await input.press('Enter');
     await this.page.waitForLoadState('networkidle');
   }
 
@@ -121,10 +121,9 @@ export class DraftPage {
   async fillIsi(content: string): Promise<void> {
     const editor = this.page.locator(loc.create.isiEditor).first();
     await editor.click();
-    // Select all content in the Plate/Slate editor via keyboard
     await this.page.keyboard.press('Control+a');
     await this.page.keyboard.press('Backspace');
-    await this.page.keyboard.insertText(content);
+    await this.page.keyboard.type(content, { delay: 5 });
     await expect(editor).not.toBeEmpty({ timeout: TIMEOUT.SHORT });
   }
 
@@ -156,6 +155,7 @@ export class DraftPage {
       await modal.locator(loc.fileModal.tabTM).first().click();
     }
 
+    await this.page.waitForLoadState('networkidle');
     const imageCards = modal.locator(loc.fileModal.imageCards);
     await imageCards.first().waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
     const imageCount = await imageCards.count();
@@ -248,6 +248,8 @@ export class DraftPage {
     const btn = this.page.locator(loc.create.submitButton).first();
     await expect(btn).toBeEnabled({ timeout: TIMEOUT.MEDIUM });
     await btn.click();
+    const confirmBtn = this.page.locator(loc.confirmModal.confirmButton).first();
+    await confirmBtn.waitFor({ state: 'visible', timeout: TIMEOUT.SHORT }).catch(() => {});
   }
 
   async isSubmitEnabled(): Promise<boolean> {
@@ -265,12 +267,10 @@ export class DraftPage {
   }
 
   async confirmDeleteModal(): Promise<void> {
-    const confirmBtn = this.page.locator('button:has-text("Ya, Hapus")').first();
+    const confirmBtn = this.page.locator(loc.deleteModal.confirmButton).first();
     await confirmBtn.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
     await confirmBtn.click({ force: true });
-    // Wait for the delete to complete (loading toast disappears or page refreshes)
     await this.page.waitForLoadState('networkidle');
-    await this.page.waitForTimeout(2000);
   }
 
   async isSuccessToastVisible(): Promise<boolean> {
@@ -290,7 +290,7 @@ export class DraftPage {
 
   // ── Fill form helper ──
 
-  async fillDraftForm(): Promise<{ judul: string; deskripsi: string }> {
+  async fillKeranjangMentahForm(): Promise<{ judul: string; deskripsi: string }> {
     console.log('Selecting rubrik...');
     await this.selectRandomRubrik();
 

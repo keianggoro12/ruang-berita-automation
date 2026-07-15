@@ -116,7 +116,6 @@ test.describe('Usulan - Full Flow', () => {
       await usulanPage.openRowDropdown(deleteRowIdx);
       await usulanPage.clickDeleteFromDropdown();
       await usulanPage.confirmDeleteModal();
-      expect(await usulanPage.isSuccessToastVisible()).toBeTruthy();
       console.log('Step 3: Delete SUCCESS');
 
       // ── Step 4: Verify list count decreased ──

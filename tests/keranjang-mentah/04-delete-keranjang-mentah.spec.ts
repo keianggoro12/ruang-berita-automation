@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { login } from '../../helpers/auth.helper';
 import { roles } from '../../fixtures/roles';
-import { DraftPage } from '../../pages/draft.page';
+import { KeranjangMentahPage } from '../../pages/keranjang-mentah.page';
 import { TIMEOUT } from '../../utils/timeout';
 
 const RUN_COUNT = parseInt(process.env.RUN_COUNT || '1', 10);
@@ -19,13 +19,13 @@ test.describe('Keranjang Mentah - Delete', () => {
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const draftPage = new DraftPage(page);
-      await draftPage.navigateToDrafts();
+      const keranjangMentahPage = new KeranjangMentahPage(page);
+      await keranjangMentahPage.navigateToKeranjangMentah();
 
-      const rowCount = await draftPage.getRowCount();
+      const rowCount = await keranjangMentahPage.getRowCount();
       console.log('Row count:', rowCount);
       if (rowCount === 0) {
-        console.log('No drafts found, skipping');
+        console.log('No keranjang mentah found, skipping');
         test.skip();
         return;
       }
@@ -33,20 +33,20 @@ test.describe('Keranjang Mentah - Delete', () => {
       const randomRowIndex = Math.floor(Math.random() * rowCount);
       console.log('Deleting row:', randomRowIndex);
 
-      await draftPage.openRowDropdown(randomRowIndex);
-      await draftPage.clickDeleteFromDropdown();
+      await keranjangMentahPage.openRowDropdown(randomRowIndex);
+      await keranjangMentahPage.clickDeleteFromDropdown();
 
       // The delete may auto-confirm or need manual confirm
-      await draftPage.confirmDeleteModal();
+      await keranjangMentahPage.confirmDeleteModal();
 
       // Wait for list to refresh (either page reloads or toast appears)
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(3000);
 
       // Refresh the page to get fresh data
-      await draftPage.navigateToDrafts();
+      await keranjangMentahPage.navigateToKeranjangMentah();
+      expect(await keranjangMentahPage.isListVisible()).toBeTruthy();
 
-      const newRowCount = await draftPage.getRowCount();
+      const newRowCount = await keranjangMentahPage.getRowCount();
       console.log('Rows after delete:', newRowCount);
       expect(newRowCount).toBeLessThanOrEqual(rowCount);
       console.log('Delete SUCCESS');

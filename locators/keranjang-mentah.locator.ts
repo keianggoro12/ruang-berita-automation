@@ -1,4 +1,4 @@
-export const draftLocators = {
+export const keranjangMentahLocators = {
   nav: {
     link: 'a[href="/drafts"]',
   },
@@ -14,11 +14,11 @@ export const draftLocators = {
     resetFilterButton: 'button:has-text("Reset")',
     applyFilterButton: 'button:has-text("Terapkan Filter")',
     detailLink: 'a:has-text("Lihat Detail")',
-    kebabButton: 'table tbody tr button:not(:has(a))',
+    kebabButton: 'td:last-child button',
     dropdownMenu: {
-      editDraft: 'a:has-text("Edit Keranjang Mentah")',
-      useDraft: 'button:has-text("Gunakan Keranjang Mentah")',
-      deleteDraft: 'button:has-text("Hapus Keranjang Mentah")',
+      editKeranjangMentah: 'a:has-text("Edit Keranjang Mentah")',
+      useKeranjangMentah: 'button:has-text("Gunakan Keranjang Mentah")',
+      deleteKeranjangMentah: 'button:has-text("Hapus Keranjang Mentah")',
     },
     paginationNext: 'button:has-text("Next"), button[aria-label*="next" i]',
     paginationPrev: 'button:has-text("Prev"), button[aria-label*="prev" i]',

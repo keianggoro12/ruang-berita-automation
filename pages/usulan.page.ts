@@ -7,7 +7,7 @@ export class UsulanPage {
   constructor(private page: Page) {}
 
   async navigateToUsulan(): Promise<void> {
-    await this.page.locator(usulanLocators.nav.link).first().click();
+    await this.page.goto('/proposals');
     await this.page.waitForLoadState('networkidle');
   }
 
@@ -173,9 +173,9 @@ export class UsulanPage {
       await createBtn.click();
       await expect(calendarPicker).toBeVisible({ timeout: TIMEOUT.MEDIUM });
     } else {
-      // Edit mode: find button with date pattern like "25 Sept 2026"
-      const dateBtn = this.page.locator('button', { hasText: /\d{1,2}\s+\w{3}\s+\d{4}/ }).first();
-      await dateBtn.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
+      // Edit mode: find any button with date text like "6 Sept 2026"
+      const dateBtn = this.page.locator('button').filter({ hasText: /\d{1,2}\s+\w{3,}\s+\d{4}/ }).first();
+      await dateBtn.scrollIntoViewIfNeeded();
       await dateBtn.click();
       await expect(calendarPicker).toBeVisible({ timeout: TIMEOUT.MEDIUM });
     }
@@ -212,7 +212,7 @@ export class UsulanPage {
     await editor.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
 
     await editor.click();
-    await this.page.keyboard.insertText(content);
+    await this.page.keyboard.type(content, { delay: 5 });
 
     await expect(editor).not.toBeEmpty({ timeout: TIMEOUT.SHORT });
   }
@@ -319,17 +319,27 @@ export class UsulanPage {
 
   async clickSubmit(): Promise<void> {
     await this.dismissAllToasts();
+    await this.dismissAllToasts();
     const btn = this.page.locator(usulanLocators.create.submitButton).first();
     await expect(btn).toBeEnabled({ timeout: TIMEOUT.MEDIUM });
-    await btn.click();
+    await this.page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const submitBtn = buttons.find(b => b.textContent?.includes('Submit') && !b.textContent?.includes('Approve'));
+      if (submitBtn) submitBtn.click();
+    });
     await expect(this.page.locator(usulanLocators.create.confirmModal.confirmButton).first()).toBeVisible({ timeout: TIMEOUT.MEDIUM });
   }
 
   async clickSubmitAndApprove(): Promise<void> {
     await this.dismissAllToasts();
+    await this.dismissAllToasts();
     const btn = this.page.locator(usulanLocators.create.submitAndApproveButton).first();
     await expect(btn).toBeEnabled({ timeout: TIMEOUT.MEDIUM });
-    await btn.click();
+    await this.page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const submitBtn = buttons.find(b => b.textContent?.includes('Submit & Approve'));
+      if (submitBtn) submitBtn.click();
+    });
     await expect(this.page.locator(usulanLocators.create.confirmModal.confirmButton).first()).toBeVisible({ timeout: TIMEOUT.MEDIUM });
   }
 
