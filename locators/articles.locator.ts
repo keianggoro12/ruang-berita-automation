@@ -17,6 +17,24 @@ export const articlesLocators = {
       editArticle: 'a:has-text("Edit Artikel"), span:has-text("Edit Artikel")',
       deleteArticle: 'button:has-text("Hapus Artikel"), span:has-text("Hapus Artikel")',
     },
+    tabs: {
+      unpublished: 'li:has-text("Unpublished")',
+      draft: 'li:has-text("Draft")',
+      scheduled: 'li:has-text("Scheduled")',
+      published: 'li:has-text("Published")',
+    },
+    filter: {
+      toggleButton: 'button:has-text("Filter")',
+      resetButton: 'button:has-text("Reset")',
+      applyButton: 'button:has-text("Terapkan Filter"), button:has-text("Apply")',
+      rubrikDropdown: 'label:has-text("Rubrik") + select, label:has-text("Rubrik") ~ select',
+      kategoriDropdown: 'label:has-text("Kategori") + select, label:has-text("Kategori") ~ select',
+      aksesDropdown: 'label:has-text("Akses") + select, label:has-text("Akses") ~ select',
+      statusDropdown: 'label:has-text("Status") + select, label:has-text("Status") ~ select',
+      tipeDropdown: 'label:has-text("Tipe") + select, label:has-text("Tipe") ~ select',
+    },
+    detailLink: 'a[href*="/articles/"]',
+    readButton: 'a:has-text("Baca"), button:has-text("Baca"), a:has-text("Lihat")',
   },
 
   create: {
@@ -103,5 +121,13 @@ export const articlesLocators = {
   autocomplete: {
     dropdown: '.absolute.z-50:visible',
     options: '.absolute.z-50:visible button[type="button"]',
+  },
+
+  read: {
+    heading: 'h1, h2:has-text("ARTIKEL"), article h1, article h2',
+    content: 'article, [class*="article-content"], [class*="detail"]',
+    backLink: 'button:has-text("Kembali"), a:has-text("Kembali")',
+    judul: 'h1, h2',
+    snackbar: '[class*="snackbar"], [class*="headline"]',
   },
 };

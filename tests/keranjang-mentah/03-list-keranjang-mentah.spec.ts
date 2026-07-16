@@ -5,61 +5,57 @@ import { KeranjangMentahPage } from '../../pages/keranjang-mentah.page';
 import { TIMEOUT } from '../../utils/timeout';
 
 const RUN_COUNT = parseInt(process.env.RUN_COUNT || '1', 10);
-const rolesWithAccess = ['reporter', 'editorMuda', 'editorMadya', 'editorSenior'];
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-test.describe('Keranjang Mentah - List Verification', () => {
+test.describe('Keranjang Mentah - List', () => {
+  const rolesWithAccess = ['reporter', 'editorMuda', 'editorMadya', 'editorSenior'];
+
   for (let i = 0; i < RUN_COUNT; i++) {
-    test(`Run ${i + 1}: random role can see keranjang mentah list`, async ({ page }) => {
+    test(`Run ${i + 1}: list visible and has table rows`, async ({ page }) => {
       test.setTimeout(TIMEOUT.LONG);
       const role = pickRandom(rolesWithAccess);
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const keranjangMentahPage = new KeranjangMentahPage(page);
-      await keranjangMentahPage.navigateToKeranjangMentah();
-      expect(await keranjangMentahPage.isListVisible()).toBeTruthy();
-      const rowCount = await keranjangMentahPage.getRowCount();
+      const kmPage = new KeranjangMentahPage(page);
+      await kmPage.navigateToKeranjangMentah();
+      expect(await kmPage.isListVisible()).toBeTruthy();
+      const rowCount = await kmPage.getRowCount();
       console.log('Row count:', rowCount);
     });
 
-    test(`Run ${i + 1}: search keranjang mentah returns results`, async ({ page }) => {
+    test(`Run ${i + 1}: search returns results`, async ({ page }) => {
       test.setTimeout(TIMEOUT.LONG);
       const role = pickRandom(rolesWithAccess);
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const keranjangMentahPage = new KeranjangMentahPage(page);
-      await keranjangMentahPage.navigateToKeranjangMentah();
+      const kmPage = new KeranjangMentahPage(page);
+      await kmPage.navigateToKeranjangMentah();
 
-      await keranjangMentahPage.searchKeranjangMentah('tes');
-      const rowCount = await keranjangMentahPage.getRowCount();
-      console.log('Search results:', rowCount);
-      expect(await keranjangMentahPage.isListVisible()).toBeTruthy();
+      await kmPage.searchKeranjangMentah('tes');
+      expect(await kmPage.isListVisible()).toBeTruthy();
     });
 
-    test(`Run ${i + 1}: each row has detail link`, async ({ page }) => {
+    test(`Run ${i + 1}: row has detail link`, async ({ page }) => {
       test.setTimeout(TIMEOUT.LONG);
       const role = pickRandom(rolesWithAccess);
       console.log(`Testing role: ${role}`);
 
       await login(page, roles[role].email, roles[role].password);
-      const keranjangMentahPage = new KeranjangMentahPage(page);
-      await keranjangMentahPage.navigateToKeranjangMentah();
+      const kmPage = new KeranjangMentahPage(page);
+      await kmPage.navigateToKeranjangMentah();
 
-      const rowCount = await keranjangMentahPage.getRowCount();
+      const rowCount = await kmPage.getRowCount();
       if (rowCount === 0) {
-        console.log('No keranjang mentah found, skipping');
         test.skip();
         return;
       }
 
-      // Verify first row has a detail link
-      const detailUrl = await keranjangMentahPage.getFirstRowDetailUrl();
-      console.log('Detail URL:', detailUrl);
+      const detailUrl = await kmPage.getFirstRowDetailUrl();
       expect(detailUrl).toContain('/drafts/');
     });
   }

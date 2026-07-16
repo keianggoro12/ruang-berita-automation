@@ -70,6 +70,163 @@ export class ArticlesPage {
     await this.page.waitForLoadState('networkidle');
   }
 
+  // ── Tab Navigation (List) ──
+
+  async clickTab(tabName: 'unpublished' | 'draft' | 'scheduled' | 'published'): Promise<void> {
+    const tab = this.page.locator(loc.list.tabs[tabName]).first();
+    await tab.click();
+    await this.page.waitForTimeout(500);
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async isTabActive(tabName: 'unpublished' | 'draft' | 'scheduled' | 'published'): Promise<boolean> {
+    const tab = this.page.locator(loc.list.tabs[tabName]).first();
+    return tab.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false);
+  }
+
+  async getActiveTabText(): Promise<string> {
+    const activeTab = this.page.locator('li.text-primary, li[class*="border-primary"]').first();
+    return (await activeTab.textContent()) || '';
+  }
+
+  // ── Filter ──
+
+  async openFilter(): Promise<void> {
+    await this.page.locator(loc.list.filter.toggleButton).first().click();
+    await this.page.waitForTimeout(500);
+  }
+
+  async resetFilter(): Promise<void> {
+    await this.page.locator(loc.list.filter.resetButton).first().click();
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async applyFilter(): Promise<void> {
+    await this.page.locator(loc.list.filter.applyButton).first().click();
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async selectFilterRubrik(value: string): Promise<void> {
+    const select = this.page.locator(loc.list.filter.rubrikDropdown).first();
+    if (await select.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await select.selectOption({ label: value });
+    }
+  }
+
+  async selectFilterKategori(value: string): Promise<void> {
+    const select = this.page.locator(loc.list.filter.kategoriDropdown).first();
+    if (await select.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await select.selectOption({ label: value });
+    }
+  }
+
+  async selectFilterAkses(value: string): Promise<void> {
+    const select = this.page.locator(loc.list.filter.aksesDropdown).first();
+    if (await select.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await select.selectOption({ label: value });
+    }
+  }
+
+  async selectFilterStatus(value: string): Promise<void> {
+    const select = this.page.locator(loc.list.filter.statusDropdown).first();
+    if (await select.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await select.selectOption({ label: value });
+    }
+  }
+
+  async selectFilterTipe(value: string): Promise<void> {
+    const select = this.page.locator(loc.list.filter.tipeDropdown).first();
+    if (await select.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await select.selectOption({ label: value });
+    }
+  }
+
+  async selectRandomFilter(): Promise<{ type: string; value: string }> {
+    const filters = [
+      { type: 'rubrik', selector: loc.list.filter.rubrikDropdown },
+      { type: 'kategori', selector: loc.list.filter.kategoriDropdown },
+      { type: 'akses', selector: loc.list.filter.aksesDropdown },
+      { type: 'status', selector: loc.list.filter.statusDropdown },
+      { type: 'tipe', selector: loc.list.filter.tipeDropdown },
+    ];
+
+    const availableFilters: { type: string; selector: string }[] = [];
+    for (const filter of filters) {
+      const select = this.page.locator(filter.selector).first();
+      if (await select.isVisible({ timeout: TIMEOUT.TINY }).catch(() => false)) {
+        availableFilters.push(filter);
+      }
+    }
+
+    if (availableFilters.length === 0) {
+      console.log('No filters available');
+      return { type: '', value: '' };
+    }
+
+    const filter = availableFilters[Math.floor(Math.random() * availableFilters.length)];
+    const select = this.page.locator(filter.selector).first();
+    const options = await select.locator('option').all();
+    const values: { value: string; text: string }[] = [];
+
+    for (const opt of options) {
+      const val = await opt.getAttribute('value') || '';
+      const text = (await opt.textContent()) || '';
+      if (val && text.trim() && !(await opt.isDisabled())) {
+        values.push({ value: val, text: text.trim() });
+      }
+    }
+
+    if (values.length > 0) {
+      const pick = values[Math.floor(Math.random() * values.length)];
+      await select.selectOption(pick.value);
+      console.log(`Selected filter ${filter.type}: ${pick.text}`);
+      return { type: filter.type, value: pick.text };
+    }
+
+    return { type: filter.type, value: '' };
+  }
+
+  // ── Read Article ──
+
+  async clickReadArticle(rowIndex: number): Promise<void> {
+    const row = this.page.locator(loc.list.rows).nth(rowIndex);
+    const link = row.locator(loc.list.detailLink).first();
+    if (await link.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await link.click();
+    } else {
+      // Fallback: click judul cell
+      const judulCell = row.locator('td').nth(1);
+      await judulCell.click();
+    }
+    await this.page.waitForLoadState('load');
+  }
+
+  async isReadPageVisible(): Promise<boolean> {
+    return this.page.locator(loc.read.content).first()
+      .isVisible({ timeout: TIMEOUT.MEDIUM }).catch(() => false);
+  }
+
+  async getReadPageTitle(): Promise<string> {
+    return (await this.page.locator(loc.read.judul).first().textContent()) || '';
+  }
+
+  async clickBackFromRead(): Promise<void> {
+    await this.page.locator(loc.read.backLink).first().click();
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async getRowJudulText(rowIndex: number): Promise<string> {
+    const row = this.page.locator(loc.list.rows).nth(rowIndex);
+    const judulCell = row.locator('td').nth(1);
+    return ((await judulCell.textContent()) || '').trim();
+  }
+
+  async getRowStatusText(rowIndex: number): Promise<string> {
+    const row = this.page.locator(loc.list.rows).nth(rowIndex);
+    const statusCell = row.locator('td').nth(3);
+    return ((await statusCell.textContent()) || '').trim();
+  }
+
   // ── Main Content Fields ──
 
   async fillSnackbar(text: string): Promise<void> {
@@ -210,31 +367,25 @@ export class ArticlesPage {
   // ── Autocomplete Helper ──
 
   private async selectAutocomplete(inputLocator: any, label: string): Promise<string> {
-    await inputLocator.scrollIntoViewIfNeeded();
     await inputLocator.click();
-    await this.page.waitForTimeout(500);
 
-    const dropdowns = this.page.locator(loc.autocomplete.dropdown);
-    const count = await dropdowns.count();
-    console.log(`[${label}] Found ${count} visible dropdown(s)`);
+    const dropdown = this.page.locator('.absolute.z-50:has(button[type="button"])').first();
+    await dropdown.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
 
-    for (let i = 0; i < count; i++) {
-      const dd = dropdowns.nth(i);
-      const buttons = dd.locator(loc.autocomplete.options);
-      const btnCount = await buttons.count();
-      if (btnCount > 0) {
-        console.log(`Found ${btnCount} ${label} options`);
-        const randomIdx = Math.floor(Math.random() * btnCount);
-        const text = (await buttons.nth(randomIdx).textContent()) || '';
-        console.log(`Picking ${label}: ${text}`);
-        await buttons.nth(randomIdx).click({ force: true });
-        await this.page.waitForTimeout(300);
-        return text;
-      }
+    const options = dropdown.locator('button[type="button"]');
+    const count = await options.count();
+    console.log(`[${label}] Found ${count} options`);
+
+    if (count > 0) {
+      const randomIdx = Math.floor(Math.random() * count);
+      const text = (await options.nth(randomIdx).textContent()) || '';
+      console.log(`Picking ${label}: ${text.trim()}`);
+      await options.nth(randomIdx).click();
+      await this.page.waitForTimeout(300);
+      return text.trim();
     }
 
     console.log(`No ${label} options found`);
-    await this.page.keyboard.press('Escape');
     return '';
   }
 
@@ -422,22 +573,18 @@ export class ArticlesPage {
     await input.pressSequentially('tem', { delay: 80 });
     await this.page.waitForTimeout(1500);
 
-    const allDropdowns = this.page.locator(loc.autocomplete.dropdown);
-    const ddCount = await allDropdowns.count();
-    console.log(`[tag] Found ${ddCount} visible dropdown(s)`);
+    const dropdown = this.page.locator('.absolute.z-50:has(button[type="button"])').first();
+    const isVisible = await dropdown.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false);
 
-    for (let i = 0; i < ddCount; i++) {
-      const dd = allDropdowns.nth(i);
-      const buttons = dd.locator(loc.autocomplete.options);
+    if (isVisible) {
+      const buttons = dropdown.locator('button[type="button"]');
       const btnCount = await buttons.count();
+      console.log(`[tag] Found ${btnCount} options`);
 
       if (btnCount > 0) {
-        const firstBtnText = (await buttons.first().textContent()) || '';
-        console.log(`[tag] Dropdown ${i}: ${btnCount} buttons, first="${firstBtnText.trim()}"`);
-
         const randomIdx = Math.floor(Math.random() * btnCount);
         const text = (await buttons.nth(randomIdx).textContent()) || '';
-        await buttons.nth(randomIdx).click({ force: true });
+        await buttons.nth(randomIdx).click();
         console.log(`Selected tag: ${text.trim()}`);
         await this.page.waitForTimeout(300);
         return;
