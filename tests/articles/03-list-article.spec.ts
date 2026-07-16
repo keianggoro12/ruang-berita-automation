@@ -93,7 +93,7 @@ test.describe('Articles - List, Tabs, Search & Filter', () => {
       }
 
       await dateBtn.click();
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(TIMEOUT.TINY);
 
       const calendar = page.locator('[role="grid"], [class*="calendar"]').first();
       if (await calendar.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
@@ -101,7 +101,7 @@ test.describe('Articles - List, Tabs, Search & Filter', () => {
         const dayCount = await days.count();
         if (dayCount > 0) {
           await days.nth(Math.floor(Math.random() * Math.min(dayCount, 15))).click();
-          await page.waitForTimeout(500);
+          await page.waitForTimeout(TIMEOUT.TOAST_CHECK);
         }
       }
 

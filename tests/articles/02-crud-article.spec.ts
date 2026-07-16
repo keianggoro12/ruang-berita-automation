@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { login } from '../../helpers/auth.helper';
 import { roles } from '../../fixtures/roles';
 import { ArticlesPage } from '../../pages/articles.page';
-import { randomHeadline, randomParagraph } from '../../utils/data-generator';
 import { TIMEOUT } from '../../utils/timeout';
+import { randomHeadline, randomParagraph } from '../../utils/data-generator';
 
 const RUN_COUNT = parseInt(process.env.RUN_COUNT || '1', 10);
 
@@ -80,7 +80,7 @@ test.describe('Articles - Full CRUD Flow', () => {
 
       // Tim
       await articlesPage.clickTimTab();
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(TIMEOUT.TINY);
       await articlesPage.selectRandomRole();
       await articlesPage.selectRandomRedaksi();
       await articlesPage.selectDisplayAuthor();
