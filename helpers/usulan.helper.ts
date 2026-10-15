@@ -81,12 +81,30 @@ export async function openEditOnExistingUsulan(page: Page): Promise<ExistingUsul
   throw new Error('No editable usulan found in the list');
 }
 
+async function filterUnapprovedRow(page: Page, usulanPage: UsulanPage): Promise<number> {
+  // Only "Belum Disetujui" usulan can be rejected/deleted, so filter first.
+  await usulanPage.openFilter();
+  await usulanPage.selectFilterStatus('Belum Disetujui');
+  await usulanPage.applyFilter();
+  await snap(page, 'usulan filtered (Belum Disetujui)');
+
+  // Wait for the filtered table to render (rows may briefly be empty/reloading).
+  let rowIndex = -1;
+  const deadline = Date.now() + TIMEOUT.MEDIUM;
+  while (Date.now() < deadline) {
+    const statuses = await usulanPage.getAllRowStatuses();
+    rowIndex = statuses.findIndex((status) => status.includes('Belum Disetujui'));
+    if (rowIndex >= 0) break;
+    await page.waitForTimeout(TIMEOUT.TOAST_CHECK);
+  }
+  return rowIndex;
+}
+
 export async function openDeleteOnExistingUsulan(page: Page): Promise<ExistingUsulan> {
   const usulanPage = new UsulanPage(page);
   await usulanPage.navigateToUsulan();
 
-  const statuses = await usulanPage.getAllRowStatuses();
-  const rowIndex = statuses.findIndex((status) => status.includes('Belum Disetujui'));
+  const rowIndex = await filterUnapprovedRow(page, usulanPage);
   if (rowIndex < 0) {
     throw new Error('No unapproved usulan found to delete');
   }
@@ -96,6 +114,24 @@ export async function openDeleteOnExistingUsulan(page: Page): Promise<ExistingUs
   await snap(page, 'row actions opened');
   await usulanPage.clickDeleteFromDropdown();
   await snap(page, 'delete confirmation');
+
+  return { rowIndex, angle };
+}
+
+export async function openRejectOnExistingUsulan(page: Page): Promise<ExistingUsulan> {
+  const usulanPage = new UsulanPage(page);
+  await usulanPage.navigateToUsulan();
+
+  const rowIndex = await filterUnapprovedRow(page, usulanPage);
+  if (rowIndex < 0) {
+    throw new Error('No unapproved usulan found to reject');
+  }
+
+  const angle = await usulanPage.getRowAngleOnly(rowIndex);
+  await usulanPage.openRowDropdown(rowIndex);
+  await snap(page, 'row actions opened');
+  await usulanPage.clickRejectFromDropdown();
+  await snap(page, 'reject confirmation');
 
   return { rowIndex, angle };
 }

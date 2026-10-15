@@ -16,6 +16,7 @@ export const usulanLocators = {
     dropdownMenu: {
       editUsulan: 'a:has-text("Edit Usulan"), span:has-text("Edit Usulan")',
       approveUsulan: 'a:has-text("Setujui Usulan"), button:has-text("Setujui Usulan"), span:has-text("Setujui Usulan")',
+      tolakUsulan: 'button:has-text("Tolak Usulan"), a:has-text("Tolak Usulan"), span:has-text("Tolak Usulan")',
       deleteUsulan: 'button:has-text("Hapus Usulan"), span:has-text("Hapus Usulan")',
     },
   },
@@ -31,6 +32,13 @@ export const usulanLocators = {
   delete: {
     confirmModal: {
       confirmButton: 'button:has-text("Hapus"):not(:has-text("Hapus Usulan"))',
+      cancelButton: 'button:has-text("Batal")',
+    },
+  },
+
+  reject: {
+    confirmModal: {
+      confirmButton: 'button:has-text("Tolak"):not(:has-text("Tolak Usulan"))',
       cancelButton: 'button:has-text("Batal")',
     },
   },

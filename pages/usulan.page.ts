@@ -132,6 +132,11 @@ export class UsulanPage {
     await expect(this.page.locator(usulanLocators.approve.heading).first()).toBeVisible({ timeout: TIMEOUT.MEDIUM });
   }
 
+  async clickRejectFromDropdown(): Promise<void> {
+    await this.page.locator(usulanLocators.list.dropdownMenu.tolakUsulan).first().click();
+    await expect(this.page.locator(usulanLocators.reject.confirmModal.confirmButton).first()).toBeVisible({ timeout: TIMEOUT.MEDIUM });
+  }
+
   // ── Search ──
 
   async searchUsulan(query: string): Promise<void> {
@@ -233,6 +238,20 @@ export class UsulanPage {
 
   async confirmDeleteModal(): Promise<void> {
     const confirmBtn = this.page.locator(usulanLocators.delete.confirmModal.confirmButton).first();
+    await confirmBtn.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
+    await confirmBtn.click({ force: true });
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  // ── Reject ──
+
+  async openRejectModal(rowIndex: number): Promise<void> {
+    await this.openRowDropdown(rowIndex);
+    await this.clickRejectFromDropdown();
+  }
+
+  async confirmRejectModal(): Promise<void> {
+    const confirmBtn = this.page.locator(usulanLocators.reject.confirmModal.confirmButton).first();
     await confirmBtn.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
     await confirmBtn.click({ force: true });
     await this.page.waitForLoadState('networkidle');
