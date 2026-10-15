@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Frontend automation testing for Ruang Berita Staging",
   "scripts": {
+    "setup": "bash setup.sh",
+    "start": "bash start.sh",
     "test": "npx playwright test",
     "test:usulan": "npx playwright test tests/usulan/",
     "test:keranjang-mentah": "npx playwright test tests/keranjang-mentah/",
