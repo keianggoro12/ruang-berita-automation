@@ -10,8 +10,20 @@ import { TIMEOUT } from '../../utils/timeout';
 
 const RUN_COUNT = parseInt(process.env.RUN_COUNT || '1', 10);
 
-test.describe('Usulan - Search', () => {
+test.describe('Usulan - List & Search', () => {
   for (let i = 0; i < RUN_COUNT; i++) {
+    test(`Run ${i + 1}: usulan list and create button are visible`, async ({ page }) => {
+      test.setTimeout(TIMEOUT.LONG);
+      const role = await loginAsRandomRole(page, USULAN_ACCESS_ROLES);
+      console.log(`Testing role: ${role}`);
+
+      const usulanPage = new UsulanPage(page);
+      await usulanPage.navigateToUsulan();
+
+      expect(await usulanPage.isListVisible()).toBeTruthy();
+      expect(await usulanPage.isCreateButtonVisible()).toBeTruthy();
+    });
+
     test(`Run ${i + 1}: search finds matching usulan`, async ({ page }) => {
       test.setTimeout(TIMEOUT.EXTRA_LONG);
       const role = await loginAsRandomRole(page, USULAN_ACCESS_ROLES);
