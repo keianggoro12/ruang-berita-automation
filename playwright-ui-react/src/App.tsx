@@ -37,6 +37,7 @@ interface TestItem {
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
 const APP_TITLE = "Automation Newsroom Pustaka Runner";
+const VIDEO_PLAYBACK_RATE = 1.5;
 const EMPTY_ARTIFACTS: Artifacts = { videos: [], screenshots: [], traces: [], logs: [] };
 
 function App() {
@@ -449,7 +450,16 @@ function App() {
                       <div className="flex-1 flex flex-col items-center justify-center min-w-0">
                         {videoUrl ? (
                           <div className="w-full max-w-4xl">
-                            <video ref={videoRef} src={videoUrl} controls className="w-full rounded-lg border border-border bg-black" playsInline />
+                            <video
+                              ref={videoRef}
+                              src={videoUrl}
+                              controls
+                              playsInline
+                              onLoadedMetadata={(e) => {
+                                e.currentTarget.playbackRate = VIDEO_PLAYBACK_RATE;
+                              }}
+                              className="w-full rounded-lg border border-border bg-black"
+                            />
                             <p className="text-sm text-muted-foreground mt-2 text-center">Video replay (recorded after test completion)</p>
                           </div>
                         ) : (
@@ -476,7 +486,16 @@ function App() {
                       {allArtifacts.map((a) => (
                         <Card key={a.url} className="overflow-hidden">
                           <CardContent className="p-0">
-                            {a.type === "video" && <video src={a.url} controls className="w-full aspect-video bg-black" />}
+                            {a.type === "video" && (
+                              <video
+                                src={a.url}
+                                controls
+                                onLoadedMetadata={(e) => {
+                                  e.currentTarget.playbackRate = VIDEO_PLAYBACK_RATE;
+                                }}
+                                className="w-full aspect-video bg-black"
+                              />
+                            )}
                             {a.type === "image" && <img src={a.url} alt={a.name} className="w-full aspect-video object-cover" />}
                             {(a.type === "trace" || a.type === "log") && (
                               <div className="aspect-video flex items-center justify-center bg-muted">
