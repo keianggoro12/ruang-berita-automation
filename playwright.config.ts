@@ -10,22 +10,25 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
-  reporter: [['html', { open: 'never' }]],
+  reporter: [['./reporters/step-reporter.ts'], ['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: process.env.BASE_URL || 'https://staging-ruang-berita.tempo.co/',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'on-first-retry',
+    video: 'on',
     actionTimeout: 15000,
     navigationTimeout: 30000,
-    slowMo: 50,
+    launchOptions: {
+      slowMo: 50,
+      headless: true,
+    },
   },
   projects: [
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        headless: false,
+        headless: true,
       },
     },
   ],

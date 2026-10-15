@@ -15,13 +15,13 @@ export const usulanLocators = {
     paginationButton: 'button:has-text("1"), button:has-text("2"), button:has-text("3")',
     dropdownMenu: {
       editUsulan: 'a:has-text("Edit Usulan"), span:has-text("Edit Usulan")',
-      approveUsulan: 'button:has-text("Setujui Usulan"), span:has-text("Setujui Usulan")',
+      approveUsulan: 'a:has-text("Setujui Usulan"), button:has-text("Setujui Usulan"), span:has-text("Setujui Usulan")',
       deleteUsulan: 'button:has-text("Hapus Usulan"), span:has-text("Hapus Usulan")',
     },
   },
 
   filter: {
-    toggleButton: 'button:has-text("Filter")',
+    toggleButton: 'button:has-text("Filter"):not(:has-text("Terapkan Filter"))',
     statusDropdown: 'label:has-text("Status Usulan") + select',
     masaBerlakuDropdown: 'label:has-text("Masa Berlaku") + select',
     applyButton: 'button:has-text("Terapkan Filter")',
@@ -35,11 +35,29 @@ export const usulanLocators = {
     },
   },
 
+  approve: {
+    modal: 'div.fixed.inset-0.z-100',
+    heading: 'h3:has-text("Setujui Usulan")',
+    reporterInput: 'input[placeholder="Cari reporter"]',
+    editorInput: 'input[placeholder="Cari editor"]',
+    edisiInput: 'input[placeholder="Cari edisi..."]',
+    jumlahHalamanInput: 'input[placeholder="Masukkan jumlah halaman cetak"]',
+    articleTypeRadio: 'input[name="approveArticleType"]',
+    option: 'button.text-left',
+    confirmModal: {
+      confirmButton: 'button:has-text("Ya, Setujui")',
+      cancelButton: 'button:has-text("Batal")',
+    },
+  },
+
   create: {
     heading: 'h1:has-text("BUAT USULAN"), h1:has-text("EDIT USULAN")',
     tanggalButton: 'button:has-text("Pilih tanggal")',
     tanggalEditButton: 'button:has-text("Tanggal Perencanaan Tayang") ~ button, button:has-text("25") ~ button, xpath=//div[contains(text(), "Tanggal Perencanaan Tayang")]/following-sibling::button',
     angleInput: '[placeholder="Tulis angle"]',
+    rubrikInput: 'input[placeholder="Cari rubrik"]',
+    userNeedModelInput: 'input[placeholder="Pilih model"]',
+    dropdownOption: 'button.text-left',
     latarBelakangEditor: '[contenteditable="true"]',
     submitButton: 'button:has-text("Submit"):not(:has-text("Approve"))',
     submitAndApproveButton: 'button:has-text("Submit & Approve")',

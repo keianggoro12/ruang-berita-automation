@@ -1,7 +1,14 @@
 import { faker } from '@faker-js/faker';
+import { pickRandom, randomInt } from './random';
 
-function rand(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+export interface Narasumber {
+  nama: string;
+  jabatan: string;
+  kontak: string;
+}
+
+export function generateReferenceCode(): string {
+  return `QA-${faker.string.numeric(6)}-${faker.string.numeric(3)}`;
 }
 
 export function generateAngle(): string {
@@ -21,16 +28,12 @@ export function generateAngle(): string {
   return pickRandom(patterns)();
 }
 
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 export function generateLatarBelakang(angle: string): string {
   const paragraphs: string[] = [];
-  const numParagraphs = rand(2, 4);
+  const numParagraphs = randomInt(2, 4);
 
   for (let i = 0; i < numParagraphs; i++) {
-    const numSentences = rand(3, 5);
+    const numSentences = randomInt(3, 5);
     const sentences: string[] = [];
 
     sentences.push(faker.lorem.sentence({ min: 10, max: 20 }));
@@ -45,9 +48,9 @@ export function generateLatarBelakang(angle: string): string {
   return paragraphs.join('\n\n');
 }
 
-export function generateNarasumber(): { nama: string; jabatan: string; kontak: string }[] {
-  const count = rand(1, 5);
-  const sources: { nama: string; jabatan: string; kontak: string }[] = [];
+export function generateNarasumber(): Narasumber[] {
+  const count = randomInt(1, 5);
+  const sources: Narasumber[] = [];
 
   for (let i = 0; i < count; i++) {
     const nama = faker.person.fullName();
