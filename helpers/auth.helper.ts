@@ -3,8 +3,10 @@ import { LoginPage } from '../pages/login.page';
 import { roles } from '../fixtures/roles';
 import { pickRandom } from '../utils/random';
 import { snap } from '../utils/snap';
+import { addClickEffect } from '../utils/click-effect';
 
 export async function login(page: Page, email: string, password: string): Promise<void> {
+  await addClickEffect(page);
   const loginPage = new LoginPage(page);
   await loginPage.login(email, password);
   await snap(page, 'logged in');

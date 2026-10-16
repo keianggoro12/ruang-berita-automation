@@ -39,7 +39,8 @@ export class UsulanPage {
   // ── List Actions ──
 
   async getRowCount(): Promise<number> {
-    return this.page.locator(usulanLocators.list.rows).count();
+    // Exclude the empty-state row (a single colspan cell → no 2nd cell).
+    return this.page.locator(`${usulanLocators.list.rows}:has(td:nth-child(2))`).count();
   }
 
   async getRowAngleText(rowIndex: number): Promise<string> {

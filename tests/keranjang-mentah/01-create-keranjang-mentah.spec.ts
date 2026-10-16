@@ -1,73 +1,47 @@
 import { test, expect } from '@playwright/test';
-import { login } from '../../helpers/auth.helper';
-import { roles } from '../../fixtures/roles';
+import { loginAsRandomRole } from '../../helpers/auth.helper';
+import {
+  createKeranjangMentah,
+  locateKeranjangMentahRow,
+  KERANJANG_MENTAH_ACCESS_ROLES,
+  KERANJANG_MENTAH_DENIED_ROLES,
+} from '../../helpers/keranjang-mentah.helper';
 import { KeranjangMentahPage } from '../../pages/keranjang-mentah.page';
-import { randomHeadline, randomParagraph } from '../../utils/data-generator';
 import { TIMEOUT } from '../../utils/timeout';
 
 const RUN_COUNT = parseInt(process.env.RUN_COUNT || '1', 10);
 
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 test.describe('Keranjang Mentah - Create', () => {
-  const rolesWithAccess = ['reporter', 'editorMuda', 'editorMadya', 'editorSenior'];
-  const rolesWithoutAccess = ['fotografer', 'penulisLuar'];
-
   for (let i = 0; i < RUN_COUNT; i++) {
-    test(`Run ${i + 1}: random role can create keranjang mentah`, async ({ page }) => {
+    test(`Run ${i + 1}: user with access can create keranjang mentah`, async ({ page }) => {
       test.setTimeout(TIMEOUT.EXTRA_LONG);
-      const role = pickRandom(rolesWithAccess);
+      const role = await loginAsRandomRole(page, KERANJANG_MENTAH_ACCESS_ROLES);
       console.log(`Testing role: ${role}`);
 
-      await login(page, roles[role].email, roles[role].password);
-      const kmPage = new KeranjangMentahPage(page);
-      await kmPage.navigateToKeranjangMentah();
-      await kmPage.clickCreateButton();
+      const keranjangMentahPage = new KeranjangMentahPage(page);
+      const { judul } = await createKeranjangMentah(page);
+      const rowIndex = await locateKeranjangMentahRow(page, judul);
 
-      await kmPage.selectRandomRubrik();
-      await kmPage.fillJudul(randomHeadline());
-      await kmPage.fillDeskripsi(randomParagraph(2));
-      await kmPage.fillIsi(randomParagraph(5));
-      await kmPage.selectRandomArticleType();
-      await kmPage.selectRandomFile();
+      expect(rowIndex).toBeGreaterThanOrEqual(0);
 
-      const useUsulan = await kmPage.selectRandomUsulan();
-      if (useUsulan) {
-        await kmPage.fillRandomNarasumber();
-      }
-
-      await kmPage.clickSubmit();
-      await kmPage.confirmModal();
-      await page.waitForLoadState('networkidle');
-      await kmPage.navigateToKeranjangMentah();
-      expect(await kmPage.isListVisible()).toBeTruthy();
-      const rowCount = await kmPage.getRowCount();
-      expect(rowCount).toBeGreaterThan(0);
-      console.log('Create SUCCESS, rows:', rowCount);
+      const juduls = await keranjangMentahPage.getAllRowJuduls();
+      expect(juduls.length).toBeGreaterThan(0);
+      expect(juduls.every((text) => text.includes(judul))).toBeTruthy();
+      console.log('Create SUCCESS, keranjang mentah found in list at row', rowIndex);
     });
 
-    test(`Run ${i + 1}: role without access cannot create`, async ({ page }) => {
+    test(`Run ${i + 1}: user without access is denied`, async ({ page }) => {
       test.setTimeout(TIMEOUT.LONG);
-      const role = pickRandom(rolesWithoutAccess);
+      const role = await loginAsRandomRole(page, KERANJANG_MENTAH_DENIED_ROLES);
       console.log(`Testing role: ${role}`);
 
-      await login(page, roles[role].email, roles[role].password);
-      const kmPage = new KeranjangMentahPage(page);
-      await kmPage.navigateToKeranjangMentah();
+      const keranjangMentahPage = new KeranjangMentahPage(page);
+      await keranjangMentahPage.navigateToKeranjangMentah();
 
-      const hasCreateBtn = await page.locator('a[href="/drafts/create"], a:has-text("Buat Keranjang Mentah")')
-        .isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false);
-
-      if (!hasCreateBtn) {
-        console.log('Create button not found (expected)');
-        expect(true).toBeTruthy();
-      } else {
-        await kmPage.clickCreateButton();
-        const denied = await kmPage.isPageVisible();
-        expect(!denied).toBeTruthy();
-      }
+      const hasList = await keranjangMentahPage.isListVisible();
+      const denied = await keranjangMentahPage.isAccessDenied();
+      expect(denied || !hasList || !(await keranjangMentahPage.isCreateButtonVisible())).toBeTruthy();
+      console.log('Create button not available (expected)');
     });
   }
 });
