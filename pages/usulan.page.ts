@@ -1,6 +1,7 @@
 import { expect, Locator, Page } from '@playwright/test';
 import { usulanLocators } from '../locators/usulan.locator';
 import { TIMEOUT } from '../utils/timeout';
+import { clearRichText } from '../utils/editor';
 import { generateNarasumber, Narasumber } from '../utils/data-generator';
 import { pickRandom } from '../utils/random';
 import { RUBRIK_OPTIONS, USER_NEED_MODEL_OPTIONS } from '../fixtures/usulan';
@@ -404,6 +405,8 @@ export class UsulanPage {
     await editor.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM });
 
     await editor.click();
+    // Clear any existing content first (edit mode), then type the new one.
+    await clearRichText(this.page, editor);
     await this.page.keyboard.type(content, { delay: 5 });
 
     await expect(editor).not.toBeEmpty({ timeout: TIMEOUT.SHORT });

@@ -30,14 +30,14 @@ const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const TOPIC = process.env.GEMINI_TOPIC || 'Anime dan Jepang';
 
 const FALLBACK_MODELS = [
+  'gemini-3.6-flash',
   'gemini-3.5-flash',
   'gemini-3.5-flash-lite',
-  'gemini-3.6-flash',
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
   'gemini-3.7-flash',
   'gemini-3.8-flash',
   'gemini-3.1-flash-lite',
-  'gemini-flash-latest',
-  'gemini-flash-lite-latest',
   'gemini-pro-latest',
   'gemma-4-31b-it',
 ];
@@ -45,7 +45,20 @@ const FALLBACK_MODELS = [
 const EXCLUDE_MODEL =
   /embedding|image|tts|transcribe|robotics|computer-use|lyria|deep-research|antigravity|aqa|nano-banana|omni|clip|customtools/i;
 
-const MAX_ATTEMPTS = 6;
+// Models to always skip (unavailable / not usable for generation with this key).
+const SKIP_MODEL = /gemini-3\.1-pro-preview|gemini-2\.5-flash/i;
+
+// Known-good models tried first so a run hits an available model immediately
+// instead of probing flaky ones (keeps test runs concise).
+const RELIABLE_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
+];
+
+const MAX_ATTEMPTS = 5;
 const AI_BUDGET = 60000;
 const LIST_TIMEOUT = 10000;
 const PER_ATTEMPT_TIMEOUT = 15000;
@@ -86,6 +99,12 @@ const KERANJANG_MENTAH_SCHEMA = {
 };
 
 let cachedModels: string[] | null = null;
+let preferredModel: string | null = null;
+const deadModels = new Set<string>();
+
+function isUsableModel(name: string): boolean {
+  return !!name && !EXCLUDE_MODEL.test(name) && !SKIP_MODEL.test(name) && !deadModels.has(name);
+}
 
 async function listModels(): Promise<string[]> {
   if (cachedModels) return cachedModels;
@@ -100,14 +119,34 @@ async function listModels(): Promise<string[]> {
     const models = (data.models || [])
       .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
       .map((m) => String(m.name || '').replace(/^models\//, ''))
-      .filter((name) => name && !EXCLUDE_MODEL.test(name));
+      .filter(isUsableModel);
 
-    cachedModels = models.length ? models : FALLBACK_MODELS;
+    cachedModels = models.length ? models : FALLBACK_MODELS.filter(isUsableModel);
   } catch {
-    cachedModels = FALLBACK_MODELS;
+    cachedModels = FALLBACK_MODELS.filter(isUsableModel);
   }
 
   return cachedModels;
+}
+
+/**
+ * Order the model pool so the last working model and known-good models are hit
+ * first, keeping each generation attempt fast.
+ */
+function prioritizeModels(models: string[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  const push = (name: string) => {
+    if (models.includes(name) && !seen.has(name)) {
+      seen.add(name);
+      ordered.push(name);
+    }
+  };
+
+  if (preferredModel && !deadModels.has(preferredModel)) push(preferredModel);
+  RELIABLE_MODELS.forEach(push);
+  models.forEach(push);
+  return ordered;
 }
 
 function buildUsulanPrompt(): string {
@@ -180,24 +219,32 @@ async function generateJson<T>(
     return null;
   }
 
-  const pool = [...(await listModels())];
+  const pool = await listModels();
+  const ordered = prioritizeModels(pool);
   const deadline = Date.now() + AI_BUDGET;
 
-  for (let attempt = 0; attempt < MAX_ATTEMPTS && pool.length; attempt++) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && attempt < ordered.length; attempt++) {
     if (Date.now() >= deadline) {
       console.log('[AI] time budget exceeded, falling back to local dummy data');
       break;
     }
-    const model = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    const model = ordered[attempt];
     try {
       const content = sanitizeFn(await callModel(model, prompt, schema));
       if (content) {
+        preferredModel = model;
         console.log(`[AI] ${label} generated via ${model}`);
         return { content, model };
       }
       console.log(`[AI] ${model} returned incomplete ${label}, trying another model`);
     } catch (err) {
-      console.log(`[AI] ${model} failed: ${(err as Error).message}`);
+      const message = (err as Error).message;
+      // Permanently skip models that no longer exist / are not callable,
+      // so later runs don't keep probing them.
+      if (/\b404\b|not found|no longer available|not supported/i.test(message)) {
+        deadModels.add(model);
+      }
+      console.log(`[AI] ${model} failed: ${message}`);
     }
   }
 
