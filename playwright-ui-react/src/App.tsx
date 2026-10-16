@@ -18,13 +18,17 @@ import {
   Moon,
   Loader2,
   X,
-  ChevronLeft,
   Eraser,
   FolderOpen,
   FileCode2,
   BookOpenText,
   ListChecks,
   Image as ImageIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Zap,
+  Flame,
+  Layers,
 } from "lucide-react";
 import "./App.css";
 
@@ -39,12 +43,21 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
 const APP_TITLE = "Automation Newsroom Pustaka Runner";
 const VIDEO_PLAYBACK_RATE = 1.5;
 const EMPTY_ARTIFACTS: Artifacts = { videos: [], screenshots: [], traces: [], logs: [] };
+const DIR_ORDER = ["login", "usulan", "keranjang-mentah", "articles"];
+
+type RunMode = "sanity" | "smoke" | "full";
+const RUN_MODE_LABELS: Record<RunMode, string> = {
+  sanity: "Sanity Test",
+  smoke: "Smoke Test",
+  full: "Full Test",
+};
 
 function App() {
   const socketRef = useRef<Socket | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [tests, setTests] = useState<TestItem[]>([]);
   const [selectedTest, setSelectedTest] = useState<string | null>(null);
+  const [runTitle, setRunTitle] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -81,7 +94,11 @@ function App() {
       if (!state) return;
       currentRunIdRef.current = state.runId || null;
       setRunning(!!state.running);
-      if (state.kind === "test" && state.testPath) setSelectedTest(state.testPath);
+      if (state.kind === "test" && state.testPath) {
+        setSelectedTest(state.testPath);
+        setRunTitle(null);
+      }
+      if (state.kind === "mode" && state.testPath) setRunTitle(state.testPath);
       if (Array.isArray(state.logs) && state.logs.length) {
         const maxId = state.logs.reduce(
           (max: number, l: { id?: number }) => Math.max(max, l.id || 0),
@@ -102,7 +119,7 @@ function App() {
       }
     });
 
-    socket.on("run-started", ({ runId }) => {
+    socket.on("run-started", ({ runId, kind, testPath }) => {
       currentRunIdRef.current = runId;
       setRunning(true);
       setHasResults(true);
@@ -110,6 +127,11 @@ function App() {
       setVideoUrl(null);
       setArtifacts(EMPTY_ARTIFACTS);
       setSummary([]);
+      if (kind === "test" && testPath) {
+        setSelectedTest(testPath);
+        setRunTitle(null);
+      }
+      if (kind === "mode" && testPath) setRunTitle(testPath);
     });
 
     socket.on("log", ({ runId, data, type, timestamp }) => {
@@ -160,6 +182,7 @@ function App() {
       setVideoUrl(null);
       setHasResults(false);
       setReportGeneratedAt(null);
+      setRunTitle(null);
     });
 
     return () => {
@@ -189,11 +212,13 @@ function App() {
 
   const runTest = (path: string) => {
     setSelectedTest(path);
+    setRunTitle(null);
     startRun(() => socketRef.current!.emit("run-test", { testPath: path, options: { headed: false } }));
   };
 
-  const runAllTests = () => {
-    startRun(() => socketRef.current!.emit("run-all", { options: { headed: false } }));
+  const runMode = (mode: RunMode) => {
+    setRunTitle(RUN_MODE_LABELS[mode]);
+    startRun(() => socketRef.current!.emit("run-mode", { mode, options: { headed: false } }));
   };
 
   const stopRun = () => {
@@ -213,7 +238,14 @@ function App() {
       if (!groups.has(t.dir)) groups.set(t.dir, []);
       groups.get(t.dir)!.push(t);
     }
-    return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    return Array.from(groups.entries()).sort((a, b) => {
+      const ia = DIR_ORDER.indexOf(a[0]);
+      const ib = DIR_ORDER.indexOf(b[0]);
+      if (ia === -1 && ib === -1) return a[0].localeCompare(b[0]);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
   }, [tests, searchQuery]);
 
   const toggleDarkMode = () => {
@@ -246,6 +278,15 @@ function App() {
     <div className={cn("h-screen flex flex-col bg-background text-foreground", darkMode ? "dark" : "")}>
       <header className="border-b border-border bg-card px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen((open) => !open)}
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          </Button>
           <div className="flex items-center gap-2">
             <BookOpenText className="h-5 w-5 text-primary" />
             <span className="font-semibold text-lg">{APP_TITLE}</span>
@@ -262,7 +303,12 @@ function App() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-80 border-r border-border bg-card flex flex-col hidden md:flex">
+        <aside
+          className={cn(
+            "border-border bg-card flex flex-col shrink-0 overflow-hidden transition-all duration-200",
+            sidebarOpen ? "w-80 border-r" : "w-0 border-r-0"
+          )}
+        >
           <div className="p-4 border-b border-border">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Test Suite</h2>
             <input
@@ -326,20 +372,43 @@ function App() {
             ))}
             {groupedTests.length === 0 && <p className="text-center text-muted-foreground py-8 text-sm">No tests found</p>}
           </div>
-          <div className="p-4 border-t border-border">
-            <Button className="w-full" onClick={runAllTests} disabled={running}>
-              <Loader2 className={cn("mr-2 h-4 w-4", running && "animate-spin")} />
-              {running ? "Running All…" : "Run All Tests"}
-            </Button>
+          <div className="p-3 border-t border-border space-y-2">
+            <p className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Run Suite</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                className="flex-col h-auto py-2 gap-1"
+                onClick={() => runMode("sanity")}
+                disabled={running}
+                title="Test case penting saja"
+              >
+                <Zap className="h-4 w-4 text-primary" />
+                <span className="text-xs">Sanity</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-col h-auto py-2 gap-1"
+                onClick={() => runMode("smoke")}
+                disabled={running}
+                title="Beberapa test case acak"
+              >
+                <Flame className="h-4 w-4 text-primary" />
+                <span className="text-xs">Smoke</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-col h-auto py-2 gap-1"
+                onClick={() => runMode("full")}
+                disabled={running}
+                title="Seluruh test case"
+              >
+                <Layers className="h-4 w-4 text-primary" />
+                <span className="text-xs">Full</span>
+              </Button>
+            </div>
+            <p className="px-1 text-[10px] text-muted-foreground">Usulan + Keranjang Mentah</p>
           </div>
         </aside>
-
-        <button
-          className="md:hidden fixed bottom-4 right-4 z-50 p-2 bg-primary text-primary-foreground rounded-full shadow-lg"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </button>
 
         <main className="flex-1 flex flex-col overflow-hidden">
           {running || hasResults ? (
@@ -348,7 +417,7 @@ function App() {
                 <div className="flex items-center gap-3">
                   <Loader2 className={cn("h-5 w-5 text-primary", running && "animate-spin")} />
                   <div>
-                    <h2 className="font-semibold">{selectedTest || "All Tests"}</h2>
+                    <h2 className="font-semibold">{runTitle || selectedTest || "All Tests"}</h2>
                     <p className="text-sm text-muted-foreground">{running ? "Running test…" : "Test completed"}</p>
                   </div>
                 </div>
@@ -514,7 +583,7 @@ function App() {
                 </TabsContent>
 
                 <TabsContent value="summary" className="flex-1 data-[state=active]:flex flex-col overflow-hidden mt-0">
-                  <ReportView summary={summary} scope={selectedTest || "All Tests"} generatedAt={reportGeneratedAt} />
+                  <ReportView summary={summary} scope={runTitle || selectedTest || "All Tests"} generatedAt={reportGeneratedAt} />
                 </TabsContent>
               </Tabs>
             </div>
@@ -523,7 +592,7 @@ function App() {
               <div className="text-center">
                 <BookOpenText className="h-16 w-16 mx-auto mb-4 opacity-30" />
                 <h2 className="text-xl font-semibold mb-2">Select a test to run</h2>
-                <p className="text-muted-foreground">Choose from sidebar or click "Run All Tests"</p>
+                <p className="text-muted-foreground">Choose a test from the sidebar, or run Sanity / Smoke / Full</p>
               </div>
             </div>
           )}

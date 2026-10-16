@@ -11,6 +11,21 @@ function stripAnsi(str) {
   return str.replace(/\u001b\[[0-9;]*m|\u001b\[[0-9;]*[A-Z]/g, '');
 }
 
+function sanitizeForFilePath(s) {
+  return s.replace(/[\x00-\x2C\x2E-\x2F\x3A-\x40\x5B-\x60\x7B-\x7F]+/g, '-');
+}
+
+// Mirror Playwright's output-dir naming: sanitized spec path + "-" + title slug,
+// then trimLongString(..., 60) which keeps head + "-<sha1:5>-" + tail when too
+// long. We can't know the title here, so match on the stable head prefix.
+function outputDirPrefix(testPath) {
+  const normalized = sanitizeForFilePath(testPath.replace(/\.spec\.ts$/, '').replace(/\//g, '-'));
+  const LIMIT = 60;
+  const MIDDLE = 7; // "-" + 5-char hash + "-"
+  const headLen = Math.floor((LIMIT - MIDDLE) / 2); // 26
+  return normalized.length > headLen ? normalized.slice(0, headLen) : normalized;
+}
+
 const app = express();
 app.use(cors({ origin: '*' }));
 const httpServer = createServer(app);
@@ -86,10 +101,25 @@ async function convertAllVideos() {
   }
 }
 
-function findArtifacts(testPath, dirTitles = {}) {
-  const normalized = testPath.replace(/\.spec\.ts$/, '').replace(/\//g, '-');
+function findArtifacts(testPaths, dirTitles = {}) {
+  const paths = (Array.isArray(testPaths) ? testPaths : [testPaths]).filter(Boolean);
   const dirs = fs.existsSync(RESULTS_DIR) ? fs.readdirSync(RESULTS_DIR) : [];
-  const matching = dirs.filter(d => d.includes(normalized.slice(0, 80)) || d.includes(testPath.split('/').pop()?.replace('.spec.ts', '') || ''));
+  const dirSet = new Set(dirs);
+
+  // Match Playwright's own output dirs (videos/traces) via the stable name
+  // prefix, plus our snap.ts step-screenshot dirs (which embed the spec slug),
+  // and finally any exact dirs reported by the step-reporter for this run.
+  const matchingSet = new Set();
+  for (const testPath of paths) {
+    const prefix = outputDirPrefix(testPath);
+    const base = (testPath.split('/').pop() || '').replace(/\.spec\.ts$/, '');
+    for (const d of dirs) {
+      if (d.startsWith(prefix) || (base && d.includes(base))) matchingSet.add(d);
+    }
+  }
+  for (const d of Object.keys(dirTitles)) if (dirSet.has(d)) matchingSet.add(d);
+  const matching = Array.from(matchingSet);
+
   const artifacts = { videos: [], screenshots: [], traces: [], logs: [] };
   for (const dir of matching) {
     const full = path.join(RESULTS_DIR, dir);
@@ -240,6 +270,112 @@ function resetRunState(runId, testPath, kind) {
   runState.code = null;
   runState.startedAt = Date.now();
   logSeq = 0;
+}
+
+// ── Run modes (sanity / smoke / full) ──
+// Only usulan + keranjang mentah are covered for now.
+const SUITE_DIRS = ['usulan', 'keranjang-mentah'];
+const SANITY_FILES = [
+  'tests/usulan/01-create-usulan.spec.ts',
+  'tests/keranjang-mentah/01-create-keranjang-mentah.spec.ts',
+];
+const SMOKE_COUNT = 3;
+const MODE_LABELS = { sanity: 'Sanity Test', smoke: 'Smoke Test', full: 'Full Test' };
+
+function listSuiteFiles() {
+  const files = [];
+  for (const dir of SUITE_DIRS) {
+    const dirPath = path.join(TEST_DIR, dir);
+    if (!fs.existsSync(dirPath)) continue;
+    const specs = glob.sync('**/*.spec.ts', { cwd: dirPath }).sort();
+    for (const f of specs) files.push(`tests/${dir}/${f}`);
+  }
+  return files;
+}
+
+function resolveModePaths(mode) {
+  const all = listSuiteFiles();
+  if (mode === 'sanity') {
+    const important = all.filter((f) => SANITY_FILES.includes(f));
+    return important.length ? important : all;
+  }
+  if (mode === 'smoke') {
+    const shuffled = [...all];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, Math.min(SMOKE_COUNT, shuffled.length));
+  }
+  return all; // full
+}
+
+function launchRun(socket, { kind, testPath, args, label, artifactPaths }) {
+  if (runState.running) {
+    broadcastLog(runState.runId, '⚠ Masih ada test yang sedang berjalan. Tunggu sampai selesai atau tekan Stop.\n', 'error', socket);
+    return;
+  }
+  currentRunId = `run-${Date.now()}`;
+  const runId = currentRunId;
+  const artifactTargets = artifactPaths && artifactPaths.length ? artifactPaths : [testPath];
+  testOutputBuffer = '';
+  resetRunState(runId, testPath, kind);
+
+  console.log('About to spawn:', args.join(' '));
+
+  let child;
+  try {
+    child = spawn(args[0], args.slice(1), {
+      cwd: PROJECT_ROOT,
+      env: { ...process.env, FORCE_COLOR: '1', PLAYWRIGHT_VIDEO: 'on' },
+      shell: true,
+    });
+  } catch (err) {
+    console.error('Spawn error:', err);
+    broadcastLog(runId, `Spawn exception: ${err.message}`, 'error');
+    runState.running = false;
+    return;
+  }
+
+  runningChild = child;
+  io.emit('run-started', { runId, testPath, kind, timestamp: Date.now() });
+  if (label) broadcastLog(runId, label, 'system');
+
+  child.stdout.on('data', (data) => {
+    const text = stripAnsi(data.toString());
+    testOutputBuffer += text;
+    broadcastLog(runId, text, 'stdout');
+  });
+
+  child.stderr.on('data', (data) => {
+    const text = stripAnsi(data.toString());
+    testOutputBuffer += text;
+    broadcastLog(runId, text, 'stderr');
+  });
+
+  child.on('close', async (code) => {
+    broadcastLog(runId, '🎬 Menyiapkan video (konversi ke MP4)...\n', 'system');
+    await convertAllVideos();
+    const { tests: parsed, dirTitles } = parseTestOutput(testOutputBuffer);
+    parsed.forEach(t => { if (t.status === 'running') t.status = code === 0 ? 'passed' : 'failed'; });
+    const artifacts = findArtifacts(artifactTargets, dirTitles);
+    runState.running = false;
+    runState.code = code;
+    runState.summary = parsed;
+    runState.artifacts = artifacts;
+    io.emit('run-done', { runId, code, artifacts, parsedTests: parsed, timestamp: Date.now() });
+    runningChild = null;
+    currentRunId = null;
+  });
+
+  child.on('error', (err) => {
+    broadcastLog(runId, `Spawn error: ${err.message}`, 'error');
+    runState.running = false;
+    runState.code = -1;
+    io.emit('run-done', { runId, code: -1, artifacts: {}, error: err.message, timestamp: Date.now() });
+    runningChild = null;
+    currentRunId = null;
+  });
 }
 
 io.on('connection', (socket) => {
@@ -393,6 +529,30 @@ io.on('connection', (socket) => {
     });
 
     child.on('error', (err) => broadcastLog(currentRunId, `Error: ${err.message}`, 'error'));
+  });
+
+  socket.on('run-mode', ({ mode, options = {} }) => {
+    const paths = resolveModePaths(mode);
+    const label = MODE_LABELS[mode] || `Run: ${mode}`;
+    console.log(`Run mode: ${mode} → ${paths.length} file(s)`, paths);
+
+    if (!paths.length) {
+      broadcastLog(null, `⚠ Tidak ada test untuk mode "${mode}".\n`, 'error', socket);
+      return;
+    }
+
+    const args = ['npx', 'playwright', 'test', ...paths];
+    if (options.headed) args.push('--headed');
+    if (options.workers) args.push('--workers', options.workers);
+    if (options.retries !== undefined) args.push('--retries', options.retries);
+
+    launchRun(socket, {
+      kind: 'mode',
+      testPath: label,
+      artifactPaths: paths,
+      args,
+      label: `🚀 ${label} — ${paths.length} file uji\n`,
+    });
   });
 
   socket.on('stop-run', () => {
