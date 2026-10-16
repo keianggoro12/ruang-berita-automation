@@ -1,6 +1,7 @@
 import { expect, Page } from '@playwright/test';
 import { keranjangMentahLocators as loc } from '../locators/keranjang-mentah.locator';
 import { TIMEOUT } from '../utils/timeout';
+import { clearRichText } from '../utils/editor';
 import { randomHeadline, randomParagraph } from '../utils/data-generator';
 
 export interface KeranjangMentahFormData {
@@ -58,6 +59,14 @@ export class KeranjangMentahPage {
     return ((await judulEl.textContent()) || '').trim();
   }
 
+  async getRowUsulan(rowIndex: number): Promise<string> {
+    const cell = this.page
+      .locator(`${loc.list.rows}:has(td:nth-child(2))`)
+      .nth(rowIndex)
+      .locator(loc.list.usulanCell);
+    return ((await cell.textContent().catch(() => '')) || '').trim();
+  }
+
   private normalize(text: string): string {
     return text.replace(/\s+/g, ' ').trim().toLowerCase();
   }
@@ -65,6 +74,54 @@ export class KeranjangMentahPage {
   async getAllRowJuduls(): Promise<string[]> {
     const cells = this.page.locator(`${loc.list.rows} td:nth-child(2)`);
     return (await cells.allInnerTexts()).map((text) => text.trim());
+  }
+
+  async getRowInfoPenayanganText(rowIndex: number): Promise<string> {
+    const row = this.page.locator(`${loc.list.rows}:has(td:nth-child(2))`).nth(rowIndex);
+    const cell = row.locator('td').nth(2);
+    return ((await cell.textContent()) || '').trim();
+  }
+
+  async getRowJenisText(rowIndex: number): Promise<string> {
+    const row = this.page.locator(`${loc.list.rows}:has(td:nth-child(2))`).nth(rowIndex);
+    const cell = row.locator('td').nth(3);
+    return ((await cell.textContent()) || '').trim();
+  }
+
+  async getRowDibuatOlehText(rowIndex: number): Promise<string> {
+    const row = this.page.locator(`${loc.list.rows}:has(td:nth-child(2))`).nth(rowIndex);
+    const cell = row.locator('td').nth(1); // JUDUL cell contains creator info
+    return ((await cell.textContent()) || '').trim();
+  }
+
+  async getAllRowInfoPenayangan(): Promise<string[]> {
+    const rows = this.page.locator(`${loc.list.rows}:has(td:nth-child(2))`);
+    const count = await rows.count();
+    const values: string[] = [];
+    for (let i = 0; i < count; i++) {
+      values.push(await this.getRowInfoPenayanganText(i));
+    }
+    return values;
+  }
+
+  async getAllRowJenis(): Promise<string[]> {
+    const rows = this.page.locator(`${loc.list.rows}:has(td:nth-child(2))`);
+    const count = await rows.count();
+    const values: string[] = [];
+    for (let i = 0; i < count; i++) {
+      values.push(await this.getRowJenisText(i));
+    }
+    return values;
+  }
+
+  async getAllRowDibuatOleh(): Promise<string[]> {
+    const rows = this.page.locator(`${loc.list.rows}:has(td:nth-child(2))`);
+    const count = await rows.count();
+    const values: string[] = [];
+    for (let i = 0; i < count; i++) {
+      values.push(await this.getRowDibuatOlehText(i));
+    }
+    return values;
   }
 
   async waitForJudulRow(judul: string, timeout: number = TIMEOUT.MEDIUM): Promise<number> {
@@ -162,37 +219,52 @@ export class KeranjangMentahPage {
 
   // ── Filter ──
 
-  async openFilter(): Promise<boolean> {
+  async openFilter(): Promise<void> {
     const rubrikInput = this.page.locator(loc.filter.rubrikInput).first();
-    if (await rubrikInput.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) return true;
-
+    if (await rubrikInput.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      return;
+    }
     const toggle = this.page.locator(loc.filter.toggleButton).first();
-    if (!(await toggle.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false))) return false;
-
-    await toggle.click();
-    return rubrikInput.isVisible({ timeout: TIMEOUT.MEDIUM }).catch(() => false);
+    if (await toggle.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await toggle.click();
+      await expect(rubrikInput).toBeVisible({ timeout: TIMEOUT.MEDIUM });
+    }
   }
 
-  async filterByFirstRubrik(): Promise<boolean> {
-    if (!(await this.openFilter())) return false;
-
+  async selectFilterRubrik(rubrik: string): Promise<void> {
+    await this.openFilter();
     const input = this.page.locator(loc.filter.rubrikInput).first();
-    if (!(await input.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false))) return false;
-
     await input.click();
     const dropdown = this.page.locator('.absolute.z-50:has(button[type="button"])').first();
-    const opened = await dropdown
-      .waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM })
-      .then(() => true)
-      .catch(() => false);
-    if (!opened) return false;
+    await dropdown.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM }).catch(() => undefined);
+    const option = dropdown.locator('button[type="button"]').filter({ hasText: new RegExp(rubrik, 'i') }).first();
+    if (await option.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await option.click();
+    } else {
+      await dropdown.locator('button[type="button"]').first().click().catch(() => undefined);
+    }
+  }
 
-    const options = dropdown.locator('button[type="button"]');
-    if ((await options.count()) === 0) return false;
+  async selectFilterDibuatOleh(email: string): Promise<void> {
+    await this.openFilter();
+    const input = this.page.locator(loc.filter.createdByInput).first();
+    await input.click();
+    const dropdown = this.page.locator('.absolute.z-50:has(button[type="button"])').first();
+    await dropdown.waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM }).catch(() => undefined);
+    const option = dropdown.locator('button[type="button"]').filter({ hasText: email }).first();
+    if (await option.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await option.click();
+    } else {
+      await dropdown.locator('button[type="button"]').first().click().catch(() => undefined);
+    }
+  }
 
-    await options.first().click();
-    await this.applyFilter();
-    return true;
+  async selectFilterJenis(jenis: 'Artikel Free' | 'Artikel Freemium' | 'Artikel VIP' | string): Promise<void> {
+    await this.openFilter();
+    const select = this.page.locator(loc.filter.jenisSelect).first();
+    if (await select.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await select.selectOption({ label: jenis });
+    }
   }
 
   async applyFilter(): Promise<void> {
@@ -275,8 +347,8 @@ export class KeranjangMentahPage {
   async fillIsi(content: string): Promise<void> {
     const editor = this.page.locator(loc.create.isiEditor).first();
     await editor.click();
-    await this.page.keyboard.press('Control+a');
-    await this.page.keyboard.press('Backspace');
+    // Clear any existing content first (edit mode), then type the new one.
+    await clearRichText(this.page, editor);
     await this.page.keyboard.type(content, { delay: 5 });
     await expect(editor).not.toBeEmpty({ timeout: TIMEOUT.SHORT });
   }
@@ -350,6 +422,73 @@ export class KeranjangMentahPage {
     console.log('No usulan options found, skipping');
     await this.page.keyboard.press('Escape');
     return false;
+  }
+
+  async getAttachedUsulan(): Promise<string> {
+    const input = this.page.locator(loc.create.usulanInput).first();
+    if ((await input.count()) === 0) return '';
+    return (((await input.inputValue().catch(() => '')) || '')).trim();
+  }
+
+  async hasAttachedUsulan(): Promise<boolean> {
+    return (await this.getAttachedUsulan()) !== '';
+  }
+
+  async clearAttachedUsulan(): Promise<void> {
+    const input = this.page.locator(loc.create.usulanInput).first();
+    if ((await input.count()) === 0) return;
+
+    const clearIcon = input.locator('xpath=..').locator(loc.create.usulanClearIcon).first();
+    if (await clearIcon.isVisible({ timeout: TIMEOUT.SHORT }).catch(() => false)) {
+      await clearIcon.click();
+    } else {
+      await input.click();
+      await input.fill('');
+    }
+
+    const deadline = Date.now() + TIMEOUT.SHORT;
+    while (Date.now() < deadline) {
+      if ((await input.inputValue().catch(() => ' ')) === '') return;
+      await this.page.waitForTimeout(TIMEOUT.TINY);
+    }
+  }
+
+  async changeAttachedUsulan(): Promise<string> {
+    const input = this.page.locator(loc.create.usulanInput).first();
+    if ((await input.count()) === 0) return '';
+
+    const current = (((await input.inputValue().catch(() => '')) || '')).trim();
+    await input.click();
+
+    // Clear the current text so the dropdown lists all usulan, not only the attached one.
+    const selectAll = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+    await this.page.keyboard.press(selectAll).catch(() => undefined);
+    await this.page.keyboard.press('Backspace').catch(() => undefined);
+
+    const dropdown = this.page.locator('.absolute.z-50:has(button[type="button"])').first();
+    const opened = await dropdown
+      .waitFor({ state: 'visible', timeout: TIMEOUT.MEDIUM })
+      .then(() => true)
+      .catch(() => false);
+    if (!opened) return '';
+
+    const options = dropdown.locator('button[type="button"]');
+    const count = await options.count();
+    if (count === 0) {
+      await this.page.keyboard.press('Escape').catch(() => undefined);
+      return '';
+    }
+
+    const texts = (await options.allInnerTexts()).map((text) => text.replace(/\s+/g, ' ').trim());
+    const candidates = texts
+      .map((text, index) => ({ text, index }))
+      .filter((option) => option.text && option.text !== current);
+    const pick = candidates[Math.floor(Math.random() * candidates.length)] || { text: texts[0], index: 0 };
+
+    await options.nth(pick.index).click();
+    await this.page.waitForTimeout(TIMEOUT.TINY);
+    console.log(`Changed usulan to: ${pick.text.substring(0, 60)}`);
+    return pick.text;
   }
 
   async fillRandomNarasumber(source?: { nama?: string; jabatan?: string; kontak?: string }): Promise<void> {

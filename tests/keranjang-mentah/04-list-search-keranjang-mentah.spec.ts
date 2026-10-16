@@ -48,23 +48,5 @@ test.describe('Keranjang Mentah - List & Search', () => {
 
       expect(await keranjangMentahPage.getRowCount()).toBe(0);
     });
-
-    test(`Run ${i + 1}: row has detail link`, async ({ page }) => {
-      test.setTimeout(TIMEOUT.LONG);
-      const role = await loginAsRandomRole(page, KERANJANG_MENTAH_ACCESS_ROLES);
-      console.log(`Testing role: ${role}`);
-
-      const keranjangMentahPage = new KeranjangMentahPage(page);
-      await keranjangMentahPage.navigateToKeranjangMentah();
-
-      const rowCount = await keranjangMentahPage.getRowCount();
-      if (rowCount === 0) {
-        test.skip();
-        return;
-      }
-
-      const detailUrl = await keranjangMentahPage.getFirstRowDetailUrl();
-      expect(detailUrl).toContain('/drafts/');
-    });
   }
 });

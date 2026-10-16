@@ -6,6 +6,7 @@ export const keranjangMentahLocators = {
   list: {
     table: 'table',
     rows: 'table tbody tr',
+    usulanCell: 'td:nth-child(5)',
     heading: 'h2:has-text("KERANJANG MENTAH")',
     createButton: 'button:has-text("Buat Keranjang Mentah"), a:has-text("Buat Keranjang Mentah")',
     searchInput: 'input[placeholder*="Cari judul"]',
@@ -26,6 +27,7 @@ export const keranjangMentahLocators = {
     toggleButton: 'button:has-text("Filter"):not(:has-text("Terapkan Filter"))',
     rubrikInput: 'input[placeholder="Pilih rubrik"]',
     createdByInput: 'input[placeholder="Dibuat oleh"]',
+    jenisSelect: 'select:has(option[value="FREE"])',
     applyButton: 'button:has-text("Terapkan Filter")',
     resetButton: 'button:has-text("Reset")',
   },
@@ -39,6 +41,7 @@ export const keranjangMentahLocators = {
     isiEditor: '[id^="e-r"]',
     articleTypeRadio: 'input[name="articleType"]',
     usulanInput: 'input[placeholder="Pilih Usulan"]',
+    usulanClearIcon: 'svg.lucide-x',
     dropdownOption: 'button.text-left',
     pilihFileButton: 'button:has-text("Pilih File")',
     submitButton: 'button[type="submit"]:has-text("Simpan")',
