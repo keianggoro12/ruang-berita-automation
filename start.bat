@@ -9,6 +9,32 @@ echo   Automation Newsroom - Ruang Berita (Windows)
 echo ==========================================================
 echo.
 
+REM --- 0. Auto-update dari GitHub (hanya jika clean) ---
+echo [i] Mengecek update terbaru dari GitHub...
+where git >nul 2>nul
+if errorlevel 1 (
+  echo [!] Git tidak ditemukan. Melewati auto-update.
+  echo.
+) else (
+  git status --porcelain >nul 2>&1
+  for /f %%a in ('git status --porcelain ^| find /c /v ""') do set "dirty=%%a"
+  if not "!dirty!"=="0" (
+    echo [!] Ada perubahan lokal yang belum di-commit. Melewati auto-pull.
+    echo     Commit/stash dulu jika ingin update otomatis.
+    echo.
+  ) else (
+    git fetch --quiet
+    git pull --ff-only --quiet >nul 2>&1
+    if errorlevel 1 (
+      echo [i] Sudah menggunakan versi terbaru atau gagal pull. Melanjutkan...
+      echo.
+    ) else (
+      echo [+] Berhasil update ke versi terbaru.
+      echo.
+    )
+  )
+)
+
 where node >nul 2>nul
 if errorlevel 1 (
   echo [X] Node.js belum terpasang.
