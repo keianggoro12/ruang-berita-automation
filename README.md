@@ -28,13 +28,23 @@ npm start
 
 > Ingin menyiapkan tanpa menjalankan? `npm run setup`.
 
-### Pengguna macOS — shortcut klik-ganda
+### Shortcut klik-ganda (tanpa mengetik perintah)
 
-Setelah clone, kamu cukup **double-click file `start.command`** di Finder.
-Terminal akan terbuka dan Automation Newsroom langsung menyala di browser.
+Setelah clone, cukup **klik-ganda** file berikut:
 
-Windows: jalankan `npm start` dari PowerShell/Git Bash.
-Linux: jalankan `npm start` (pastikan `xdg-open` ada agar browser otomatis terbuka).
+| Sistem | File |
+| --- | --- |
+| **macOS** | `start.command` — double-click di Finder |
+| **Windows** | `start.bat` — double-click di File Explorer |
+
+Keduanya melakukan hal yang sama dan **sudah termasuk menyiapkan `.env`**
+(dibuat otomatis dari `.env.example`), jadi **tidak perlu mengisi env manual** di
+platform mana pun. Urutannya: buat `.env` → install dependency + browser Chromium
+→ jalankan backend runner (`:3001`) & UI (`:5173`) → buka browser.
+
+> **Windows:** bila muncul peringatan SmartScreen, pilih **More info → Run anyway**.
+> **macOS:** bila muncul peringatan Gatekeeper, klik kanan `start.command` → **Open**.
+> **Linux:** jalankan `npm start` (pastikan `xdg-open` ada agar browser otomatis terbuka).
 
 ---
 
@@ -110,7 +120,9 @@ ruang-berita-automation/
 ├── setup.sh                # Install dependency (dipanggil oleh start.sh)
 ├── start.sh                # 1-perintah: setup + jalankan + buka browser
 ├── start.command           # Shortcut klik-ganda untuk macOS
-└── .env.example            # Template konfigurasi
+├── start.bat               # Shortcut klik-ganda untuk Windows
+├── .env.example            # Template konfigurasi
+└── .gitattributes          # Normalisasi line ending (mis. .bat = CRLF)
 ```
 
 Arsitektur saat menjalankan:
@@ -138,6 +150,8 @@ Pastikan jaringan kamu sudah diizinkan sebelum menjalankan test.
 | Masalah | Solusi |
 | --- | --- |
 | **Port sudah dipakai** (`3001`/`5173`) | `start.sh` otomatis membebaskan port. Manual: `lsof -ti:5173 \| xargs kill -9` |
+| **Windows: `start.bat` bilang `node` tidak dikenali** | Install Node.js 18+ dari nodejs.org, lalu tutup & buka ulang jendela Command Prompt |
+| **Windows: port `3001`/`5173` sudah dipakai** | Tutup jendela *Runner*/*UI* yang lama. Manual: `netstat -ano \| findstr :5173` lalu `taskkill /PID <pid> /F` |
 | **Browser belum terpasang** | `npx playwright install chromium` |
 | **Login gagal / diblokir** | Nyalakan VPN & pastikan IP di-whitelist |
 | **Video tidak jalan di Safari** | Install `ffmpeg` (`brew install ffmpeg`) untuk konversi webm → mp4 |

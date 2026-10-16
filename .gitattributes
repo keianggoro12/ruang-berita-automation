@@ -1,0 +1,4 @@
+# Pastikan file .bat selalu tersimpan dengan line ending Windows (CRLF)
+# agar bisa diklik-ganda di Windows.
+*.bat text eol=crlf
+*.cmd text eol=crlf
